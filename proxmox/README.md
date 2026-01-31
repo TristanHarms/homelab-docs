@@ -2,7 +2,7 @@
 
 ## TODO
 
-[Revert zfs arc changes to default]([url](https://gemini.google.com/share/a6932376b5fc))
+- [ ] [Revert zfs arc changes to default]([url](https://gemini.google.com/share/a6932376b5fc))
 
 ## Loading video drivers on the Intel Ultra 9 285HX
 
