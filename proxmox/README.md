@@ -13,9 +13,10 @@ reboot
 ls -la /dev/dri
 ```
 
-## LXC shared igpu passhtrough hookup script
+## LXC Debian shared igpu passhtrough pre-start hookup script
 
-`/var/lib/vz/snippets/lxc-igpu.sh` (`chmod +x`)
+`/var/lib/vz/snippets/lxc-debian-igpu.sh` (`chmod +x`)
+
 ```bash
 #!/usr/bin/perl
 
@@ -46,4 +47,39 @@ if ($phase eq 'pre-start') {
 }
 
 exit 0;
+```
+
+## LXC Alpine Ansible Prep hookup script
+
+`/var/lib/vz/snippets/lxc-alpine-ansible-prep.sh` (`chmod +x`)
+
+```
+#!/bin/bash
+
+# Get container ID from environment
+CTID=$1
+
+# Wait for container to be fully started
+sleep 5
+
+# Install and start SSH in the Alpine container
+pct exec $CTID -- sh -c '
+    # Update package index
+    apk update
+
+    # Install Python, needed for Ansible gather facts
+    apk add openssh python3
+
+    # Install OpenSSH, needed for Ansible wait for connection
+    apk add openssh
+
+    # Generate SSH host keys if they don'\''t exist
+    ssh-keygen -A
+
+    # Enable and start SSH service
+    rc-update add sshd default
+    rc-service sshd start
+'
+
+exit 0
 ```
