@@ -18,35 +18,30 @@ ls -la /dev/dri
 `/var/lib/vz/snippets/lxc-debian-igpu.sh` (`chmod +x`)
 
 ```bash
-#!/usr/bin/perl
+#!/bin/bash
 
-use strict;
-use warnings;
+# Get the Container ID and Phase from arguments
+vmid="$1"
+phase="$2"
 
-# Retrieve the container ID and the execution phase from arguments
-my $vmid = shift;
-my $phase = shift;
+# Only run during the 'pre-start' phase
+if [[ "$phase" == "pre-start" ]]; then
+    echo "Hookscript: Adding GPU passthrough config for VM $vmid"
 
-# Ensure we are in the 'pre-start' phase
-if ($phase eq 'pre-start') {
+    # Define the config path
+    CONFIG="/var/lib/lxc/$vmid/config"
 
-    # The location where Proxmox generates the temporary LXC config
-    my $config_file = "/var/lib/lxc/$vmid/config";
+    # Check if the config file actually exists before writing
+    if [ -f "$CONFIG" ]; then
+        echo "lxc.cgroup2.devices.allow = c 226:* rwm" >> "$CONFIG"
+        echo "lxc.mount.entry = /dev/dri dev/dri none bind,optional,create=dir" >> "$CONFIG"
+    else
+        echo "Error: Config file not found at $CONFIG" >&2
+        exit 1
+    fi
+fi
 
-    # Open the config file in append mode
-    open(my $fh, '>>', $config_file) or die "Could not open config file: $!";
-
-    print "Hookscript: Adding GPU/DRM passthrough config for VM $vmid\n";
-
-    # Append the requested configuration lines
-    # Note: We ensure standard LXC 'key = value' syntax
-    print $fh "lxc.cgroup2.devices.allow = c 226:* rwm\n";
-    print $fh "lxc.mount.entry = /dev/dri dev/dri none bind,optional,create=dir\n";
-
-    close($fh);
-}
-
-exit 0;
+exit 0
 ```
 
 ## LXC Alpine Ansible Prep hookup script
@@ -57,20 +52,20 @@ exit 0;
 #!/bin/bash
 
 # Get container ID from environment
-CTID=$1
+vmid=$1
 
 # Wait for container to be fully started
 sleep 5
 
 # Install and start SSH in the Alpine container
-pct exec $CTID -- sh -c '
+pct exec $vmid -- sh -c '
     # Update package index
     apk update
 
-    # Install Python, needed for Ansible gather facts
+    # Install Python, needed for Ansible
     apk add openssh python3
 
-    # Install OpenSSH, needed for Ansible wait for connection
+    # Install OpenSSH, needed for Ansible
     apk add openssh
 
     # Generate SSH host keys if they don'\''t exist
