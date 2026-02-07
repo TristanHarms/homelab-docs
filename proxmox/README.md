@@ -17,7 +17,7 @@ ls -la /dev/dri
 
 `/var/lib/vz/snippets/lxc-debian-igpu.sh` (`chmod +x`)
 
-```bash
+```sh
 #!/bin/bash
 
 # Get the Container ID and Phase from arguments
@@ -48,7 +48,7 @@ exit 0
 
 `/var/lib/vz/snippets/lxc-alpine-ansible-prep.sh` (`chmod +x`)
 
-```
+```sh
 #!/bin/bash
 
 # Get container ID from environment
