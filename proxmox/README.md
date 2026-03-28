@@ -15,6 +15,47 @@ ls -la /dev/dri
 
 ## LXC Debian shared igpu passhtrough pre-start hookup script
 
+`/var/lib/vs/snippets/lxc-debian-igpu-inpu.sh` (`chmod +x`)
+
+```sh
+#!/bin/bash
+# Get the Container ID and Phase from arguments
+vmid="$1"
+phase="$2"
+
+# Only run during the 'pre-start' phase
+if [[ "$phase" == "pre-start" ]]; then
+    echo "Hookscript: Adding GPU and NPU passthrough config for VM $vmid"
+    CONFIG="/var/lib/lxc/$vmid/config"
+
+    if [ -f "$CONFIG" ]; then
+        # Dynamically fetch the 'accel' major number from /proc/devices
+        ACCEL_MAJOR=$(awk '$2=="accel" {print $1}' /proc/devices)
+
+        # --- GPU Config ---
+        if ! grep -q "lxc.mount.entry = /dev/dri" "$CONFIG"; then
+            echo "lxc.cgroup2.devices.allow = c 226:* rwm" >> "$CONFIG"
+            echo "lxc.mount.entry = /dev/dri dev/dri none bind,optional,create=dir" >> "$CONFIG"
+        fi
+
+        # --- NPU Config ---
+        if [ -n "$ACCEL_MAJOR" ]; then
+            if ! grep -q "lxc.mount.entry = /dev/accel" "$CONFIG"; then
+                echo "lxc.cgroup2.devices.allow = c ${ACCEL_MAJOR}:* rwm" >> "$CONFIG"
+                echo "lxc.mount.entry = /dev/accel dev/accel none bind,optional,create=dir" >> "$CONFIG"
+            fi
+        else
+            echo "Warning: NPU (/dev/accel) not found in /proc/devices" >&2
+        fi
+    else
+        echo "Error: Config file not found at $CONFIG" >&2
+        exit 1
+    fi
+fi
+
+exit 0
+```
+
 `/var/lib/vz/snippets/lxc-debian-igpu.sh` (`chmod +x`)
 
 ```sh
